@@ -37,6 +37,7 @@
   template:
     dest: /home/git/.ssh/authorized_keys
     src: authorized_keys.j2
+    mode: 0644
   become_user: git
 
 - name: main | create git repo
