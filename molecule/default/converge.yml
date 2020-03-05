@@ -15,3 +15,8 @@
     - name: "Include ansible-git-mirror"
       include_role:
         name: "ansible-git-mirror"
+  post_tasks:
+    - name: enable crond
+      service:
+        name: crond
+        state: started
