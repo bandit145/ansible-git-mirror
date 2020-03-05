@@ -73,9 +73,6 @@
   changed_when: false
   become_user: git
 
-- debug:
-    var: crontab.stdout_lines
-
 - name: main | sync repo job
   cron:
     name: "{{ item.name }}"
