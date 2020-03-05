@@ -1,0 +1,97 @@
+---
+# tasks file for ansible-git-mirror
+
+- name: main | install git
+  yum:
+    name:
+      - git
+      - cronie
+    state: present
+
+- name: main | create git user
+  user:
+    name: git
+    shell: /usr/bin/git-shell
+
+- name: main | ensure cron file is present
+  file:
+    path: /var/spool/cron/git
+    state: touch
+  changed_when: false
+
+- name: main | set logging dir up
+  file:
+    path: /var/log/repos
+    state: directory
+    owner: git
+    group: git
+
+- name: main | ensure .ssh dir
+  file:
+    path: /home/git/.ssh/
+    state: directory
+    mode: 0700
+  become_user: git
+
+- name: main | add ssh keys
+  template:
+    dest: /home/git/.ssh/authorized_keys
+    src: authorized_keys.j2
+  become_user: git
+
+- name: main | create git repo
+  file:
+    path: /srv/
+    state: directory
+    owner: git
+    group: git
+
+- name: main | get repos
+  find:
+    paths: /srv/
+    file_type: directory
+  register: cloned_repos
+
+- name: main | clone repos
+  git:
+    repo: "{{ item.repo }}"
+    dest: /srv/{{ item.name }}
+  loop: "{{ git_repos }}"
+  become_user: git
+
+- name: main | remove repos
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ cloned_repos.files | json_query('[*].path') }}"
+  when:
+    - item.split('/')[2] not in git_repos | json_query('[*].name')
+
+- name: main | get cron jobs
+  shell: set -o pipefail && crontab -l | awk '{if($0 ~ "#"){print $2}}'
+  register: crontab
+  changed_when: false
+  become_user: git
+
+- debug:
+    var: crontab.stdout_lines
+
+- name: main | sync repo job
+  cron:
+    name: "{{ item.name }}"
+    minute: "*/5"
+    job: "cd /srv/{{ item.name }}/ && git pull >> /var/log/repos/{{ item.name }}.log 2>&1"
+    state: present
+  become_user: git
+  loop: "{{ git_repos }}"
+  when:
+    - item.name not in crontab.stdout_lines
+
+- name: main | remove sync jobs
+  cron:
+    name: "{{ item }}"
+    state: absent
+  become_user: git
+  loop: "{{ crontab.stdout_lines }}"
+  when:
+    - item not in git_repos | json_query('[*].name')
