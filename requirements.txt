@@ -1,0 +1,5 @@
+ansible
+molecule
+docker
+jmespath
+ansible-lint

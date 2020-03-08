@@ -1,0 +1,23 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: quay.io/ansible/centos7-test-container
+    command: /sbin/init
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    pre_build_image: true
+provisioner:
+  name: ansible
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
+verifier:
+  name: ansible

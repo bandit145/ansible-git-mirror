@@ -1,0 +1,19 @@
+---
+# This is an example playbook to execute Ansible tests.
+
+- name: Verify
+  hosts: all
+  tasks:
+
+  - name: get files
+    find:
+      paths: /srv/
+      file_type: directory
+    register: repos
+
+  - debug:
+      msg: "{{ repos.files }}"
+
+  - name: check if downloaded
+    assert:
+      that: "'/srv/ansible-graylog-modules' in repos.files | json_query('[*].path')"
