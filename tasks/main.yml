@@ -31,6 +31,7 @@
     path: /home/git/.ssh/
     state: directory
     mode: 0700
+  become: true
   become_user: git
 
 - name: main | add ssh keys
@@ -38,6 +39,7 @@
     dest: /home/git/.ssh/authorized_keys
     src: authorized_keys.j2
     mode: 0644
+  become: true
   become_user: git
 
 - name: main | create git repo
@@ -57,7 +59,9 @@
   git:
     repo: "{{ item.repo }}"
     dest: /srv/{{ item.name }}
+    version: "{{ item.version | default('master') }}"
   loop: "{{ git_repos }}"
+  become: true
   become_user: git
 
 - name: main | remove repos
@@ -72,6 +76,7 @@
   shell: set -o pipefail && crontab -l | awk '{if($0 ~ "#"){print $2}}'
   register: crontab
   changed_when: false
+  become: true
   become_user: git
 
 - name: main | sync repo job
@@ -81,6 +86,7 @@
     job: "cd /srv/{{ item.name }}/ && echo $(date -u +\\%Y-\\%m-\\%dT\\%R:\\%S ): $(git pull) >> /var/log/repos/{{ item.name }}.log 2>&1"
     state: present
   become_user: git
+  become: true
   loop: "{{ git_repos }}"
   when:
     - item.name not in crontab.stdout_lines
@@ -90,6 +96,7 @@
     name: "{{ item }}"
     state: absent
   become_user: git
+  become: true
   loop: "{{ crontab.stdout_lines }}"
   when:
     - item not in git_repos | json_query('[*].name')
