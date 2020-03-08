@@ -16,4 +16,4 @@
 
   - name: check if downloaded
     assert:
-      that: "'ansible-graylog-modules' is in repos.files | json_query('[*].path')"
+      that: "'/srv/ansible-graylog-modules' in repos.files | json_query('[*].path')"
